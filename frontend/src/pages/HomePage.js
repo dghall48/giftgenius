@@ -36,10 +36,12 @@ export default function HomePage({ onSearchGifts }) {
     );
   };
 
-  const handleFindGifts = () => {
+  const handleFindGifts = async () => {
+    // Show loading state (you can add a loading spinner later)
+    console.log("Searching for gifts...");
+
     // Collect all the form data
     const searchData = {
-      name: `${firstName} ${lastName}`.trim() || "Recipient",
       firstName,
       lastName,
       age,
@@ -53,9 +55,37 @@ export default function HomePage({ onSearchGifts }) {
       interests: interests || "Various interests",
     };
 
-    // Call the parent function to show gift recommendations
-    if (onSearchGifts) {
-      onSearchGifts(searchData);
+    try {
+      // Call your backend API
+      const response = await fetch(
+        "http://localhost:5001/api/recommendations",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(searchData),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to get recommendations");
+      }
+
+      const data = await response.json();
+      console.log("Received recommendations:", data);
+
+      // Pass the data to the recommendations page
+      if (onSearchGifts) {
+        onSearchGifts({
+          ...searchData,
+          name: `${firstName} ${lastName}`.trim() || "Recipient",
+          recommendations: data.recommendations,
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching recommendations:", error);
+      alert("Failed to get gift recommendations. Please try again.");
     }
   };
 

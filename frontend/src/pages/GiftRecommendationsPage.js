@@ -11,8 +11,10 @@ import {
 
 export default function GiftRecommendationsPage({ recipientData, onBack }) {
   const [savedGifts, setSavedGifts] = useState([]);
+  const [imageErrors, setImageErrors] = useState({});
 
-  const recommendations = [
+  // Use real recommendations from API or fallback to mock data
+  const recommendations = recipientData?.recommendations || [
     {
       id: 1,
       name: "Wireless Noise-Canceling Headphones",
@@ -97,6 +99,10 @@ export default function GiftRecommendationsPage({ recipientData, onBack }) {
 
   const handleShare = (gift) => {
     alert("Sharing: " + gift.name);
+  };
+
+  const handleImageError = (giftId) => {
+    setImageErrors((prev) => ({ ...prev, [giftId]: true }));
   };
 
   return (
@@ -187,9 +193,18 @@ export default function GiftRecommendationsPage({ recipientData, onBack }) {
             className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition-all duration-300 group"
           >
             <div className="relative bg-gradient-to-br from-purple-50 to-pink-50 p-8 flex items-center justify-center">
-              <div className="text-7xl transform group-hover:scale-110 transition-transform duration-300">
-                {gift.image}
-              </div>
+              {gift.imageUrl && !imageErrors[gift.id] ? (
+                <img
+                  src={gift.imageUrl}
+                  alt={gift.name}
+                  className="w-full h-48 object-contain transform group-hover:scale-110 transition-transform duration-300"
+                  onError={() => handleImageError(gift.id)}
+                />
+              ) : (
+                <div className="text-7xl transform group-hover:scale-110 transition-transform duration-300">
+                  {gift.image}
+                </div>
+              )}
               <button
                 onClick={() => toggleSave(gift.id)}
                 className={`absolute top-3 right-3 p-2 rounded-full transition-all ${
@@ -231,11 +246,16 @@ export default function GiftRecommendationsPage({ recipientData, onBack }) {
                 </span>
                 <span className="text-sm text-gray-500">(500+ reviews)</span>
               </div>
-              <div className="flex items-center gap-2 mb-4">
-                <DollarSign size={20} className="text-green-600" />
-                <span className="text-2xl font-bold text-gray-900">
-                  ${gift.price}
-                </span>
+              <div className="mb-4">
+                <div className="flex items-center gap-2">
+                  <DollarSign size={20} className="text-green-600" />
+                  <span className="text-2xl font-bold text-gray-900">
+                    ${gift.price}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Price may vary - click to see current price
+                </p>
               </div>
               <div className="flex gap-2">
                 <a
