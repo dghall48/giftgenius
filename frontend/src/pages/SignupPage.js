@@ -1,9 +1,12 @@
 import React, { useState } from "react";
 import { Mail, Lock, User, Eye, EyeOff } from "lucide-react";
+import { useAuth } from "../AuthContext";
 
 export default function SignupPage({ onSignup, onSwitchToLogin }) {
+  const { signup } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [error, setError] = useState("");
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -12,17 +15,45 @@ export default function SignupPage({ onSignup, onSwitchToLogin }) {
     confirmPassword: "",
   });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
 
+    // Validate passwords match
     if (formData.password !== formData.confirmPassword) {
-      alert("Passwords do not match!");
+      setError("Passwords do not match!");
       return;
     }
 
-    // TODO: Add signup logic here
-    console.log("Signup attempt:", formData);
-    onSignup(); // This will be called when signup is successful
+    // Validate password strength
+    if (formData.password.length < 6) {
+      setError("Password must be at least 6 characters long");
+      return;
+    }
+
+    try {
+      // Attempt to sign up
+      await signup({
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        password: formData.password,
+      });
+
+      // Clear form
+      setFormData({
+        firstName: "",
+        lastName: "",
+        email: "",
+        password: "",
+        confirmPassword: "",
+      });
+
+      // Call parent callback
+      onSignup();
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
   const handleChange = (e) => {
@@ -30,6 +61,8 @@ export default function SignupPage({ onSignup, onSwitchToLogin }) {
       ...formData,
       [e.target.name]: e.target.value,
     });
+    // Clear error when user starts typing
+    if (error) setError("");
   };
 
   return (
@@ -48,6 +81,13 @@ export default function SignupPage({ onSignup, onSwitchToLogin }) {
         {/* Signup Card */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">Sign Up</h2>
+
+          {/* Error Message */}
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Name Inputs */}
@@ -127,6 +167,7 @@ export default function SignupPage({ onSignup, onSwitchToLogin }) {
                   onChange={handleChange}
                   placeholder="Create a password"
                   required
+                  minLength={6}
                   className="w-full pl-10 pr-12 py-3 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none transition-all"
                 />
                 <button

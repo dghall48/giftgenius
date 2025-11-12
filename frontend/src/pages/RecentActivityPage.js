@@ -8,101 +8,33 @@ import {
   Trash2,
   Edit,
 } from "lucide-react";
+import { useActivity } from "../ActivityContext";
 
 export default function RecentActivityPage() {
+  const { activities, deleteActivity, clearAllActivities, getActivitiesByType } = useActivity();
   const [filter, setFilter] = useState("all");
 
-  // Mock activity data - this will come from your backend later
-  const activities = [
-    {
-      id: 1,
-      type: "gift_search",
-      icon: Search,
-      color: "from-purple-500 to-pink-500",
-      bgColor: "from-purple-100 to-pink-100",
-      title: "Searched for gift ideas",
-      description: "Found gifts for John Smith - Birthday",
-      timestamp: "2 hours ago",
-      date: new Date(Date.now() - 2 * 60 * 60 * 1000),
-    },
-    {
-      id: 2,
-      type: "recipient_added",
-      icon: Users,
-      color: "from-blue-500 to-indigo-500",
-      bgColor: "from-blue-100 to-indigo-100",
-      title: "Added new recipient",
-      description: "Sarah Johnson - Best Friend",
-      timestamp: "5 hours ago",
-      date: new Date(Date.now() - 5 * 60 * 60 * 1000),
-    },
-    {
-      id: 3,
-      type: "occasion_added",
-      icon: Calendar,
-      color: "from-pink-500 to-red-500",
-      bgColor: "from-pink-100 to-red-100",
-      title: "Added occasion",
-      description: "Mom - Christmas on Dec 25, 2025",
-      timestamp: "1 day ago",
-      date: new Date(Date.now() - 24 * 60 * 60 * 1000),
-    },
-    {
-      id: 4,
-      type: "gift_found",
-      icon: Gift,
-      color: "from-green-500 to-emerald-500",
-      bgColor: "from-green-100 to-emerald-100",
-      title: "Selected a gift",
-      description: "Wireless Headphones for John Smith",
-      timestamp: "1 day ago",
-      date: new Date(Date.now() - 26 * 60 * 60 * 1000),
-    },
-    {
-      id: 5,
-      type: "recipient_edited",
-      icon: Edit,
-      color: "from-yellow-500 to-orange-500",
-      bgColor: "from-yellow-100 to-orange-100",
-      title: "Updated recipient profile",
-      description: "Modified interests for Dad",
-      timestamp: "2 days ago",
-      date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-    },
-    {
-      id: 6,
-      type: "gift_search",
-      icon: Search,
-      color: "from-purple-500 to-pink-500",
-      bgColor: "from-purple-100 to-pink-100",
-      title: "Searched for gift ideas",
-      description: "Found gifts for Sarah Johnson - Anniversary",
-      timestamp: "3 days ago",
-      date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-    },
-    {
-      id: 7,
-      type: "recipient_added",
-      icon: Users,
-      color: "from-blue-500 to-indigo-500",
-      bgColor: "from-blue-100 to-indigo-100",
-      title: "Added new recipient",
-      description: "Emily - Sister",
-      timestamp: "4 days ago",
-      date: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000),
-    },
-    {
-      id: 8,
-      type: "occasion_added",
-      icon: Calendar,
-      color: "from-pink-500 to-red-500",
-      bgColor: "from-pink-100 to-red-100",
-      title: "Added occasion",
-      description: "Dad - Retirement Party on Nov 10, 2025",
-      timestamp: "5 days ago",
-      date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-    },
-  ];
+  // Icon mapping
+  const iconMap = {
+    gift_search: Search,
+    recipient_added: Users,
+    recipient_edited: Edit,
+    recipient_deleted: Trash2,
+    occasion_added: Calendar,
+    occasion_deleted: Trash2,
+    gift_found: Gift,
+  };
+
+  // Color mapping
+  const colorMap = {
+    gift_search: { gradient: "from-purple-500 to-pink-500", bg: "from-purple-100 to-pink-100" },
+    recipient_added: { gradient: "from-blue-500 to-indigo-500", bg: "from-blue-100 to-indigo-100" },
+    recipient_edited: { gradient: "from-yellow-500 to-orange-500", bg: "from-yellow-100 to-orange-100" },
+    recipient_deleted: { gradient: "from-red-500 to-pink-500", bg: "from-red-100 to-pink-100" },
+    occasion_added: { gradient: "from-pink-500 to-red-500", bg: "from-pink-100 to-red-100" },
+    occasion_deleted: { gradient: "from-red-500 to-pink-500", bg: "from-red-100 to-pink-100" },
+    gift_found: { gradient: "from-green-500 to-emerald-500", bg: "from-green-100 to-emerald-100" },
+  };
 
   const filterTypes = [
     { id: "all", label: "All Activity", icon: Activity },
@@ -157,6 +89,20 @@ export default function RecentActivityPage() {
 
   const groupedActivities = groupByDate(filteredActivities);
 
+  const getTimeAgo = (timestamp) => {
+    const now = new Date();
+    const activityTime = new Date(timestamp);
+    const diffMs = now - activityTime;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins} ${diffMins === 1 ? 'minute' : 'minutes'} ago`;
+    if (diffHours < 24) return `${diffHours} ${diffHours === 1 ? 'hour' : 'hours'} ago`;
+    return `${diffDays} ${diffDays === 1 ? 'day' : 'days'} ago`;
+  };
+
   const renderActivityGroup = (title, activities) => {
     if (activities.length === 0) return null;
 
@@ -167,21 +113,25 @@ export default function RecentActivityPage() {
         </h3>
         <div className="space-y-3">
           {activities.map((activity) => {
-            const Icon = activity.icon;
+            const Icon = iconMap[activity.type] || Activity;
+            const colors = colorMap[activity.type] || { 
+              gradient: "from-gray-500 to-gray-600", 
+              bg: "from-gray-100 to-gray-200" 
+            };
+
             return (
               <div
                 key={activity.id}
-                className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition-all duration-200 cursor-pointer"
+                className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition-all duration-200"
               >
                 <div className="flex items-start gap-4">
                   {/* Icon */}
                   <div
-                    className={`w-12 h-12 rounded-xl bg-gradient-to-br ${activity.bgColor} flex items-center justify-center flex-shrink-0`}
+                    className={`w-12 h-12 rounded-xl bg-gradient-to-br ${colors.bg} flex items-center justify-center flex-shrink-0`}
                   >
                     <Icon
                       size={20}
-                      className={`bg-gradient-to-br ${activity.color} bg-clip-text text-transparent`}
-                      style={{ WebkitTextFillColor: "transparent" }}
+                      className={`text-${colors.gradient.split('-')[1]}-600`}
                     />
                   </div>
 
@@ -194,19 +144,16 @@ export default function RecentActivityPage() {
                       {activity.description}
                     </p>
                     <p className="text-xs text-gray-500">
-                      {activity.timestamp}
+                      {getTimeAgo(activity.timestamp)}
                     </p>
                   </div>
 
-                  {/* Action Menu */}
-                  <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                    <svg
-                      className="w-5 h-5 text-gray-400"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                    </svg>
+                  {/* Delete Button */}
+                  <button 
+                    onClick={() => deleteActivity(activity.id)}
+                    className="p-2 hover:bg-red-50 rounded-lg transition-colors text-gray-400 hover:text-red-600"
+                  >
+                    <Trash2 size={18} />
                   </button>
                 </div>
               </div>
@@ -220,13 +167,24 @@ export default function RecentActivityPage() {
   return (
     <div>
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          Recent Activity
-        </h1>
-        <p className="text-gray-600">
-          Track your gift-giving journey and past actions
-        </p>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Recent Activity
+          </h1>
+          <p className="text-gray-600">
+            Track your gift-giving journey and past actions
+          </p>
+        </div>
+        {activities.length > 0 && (
+          <button
+            onClick={clearAllActivities}
+            className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors flex items-center gap-2"
+          >
+            <Trash2 size={18} />
+            <span className="text-sm font-medium">Clear All</span>
+          </button>
+        )}
       </div>
 
       {/* Filter Tabs */}
@@ -234,6 +192,10 @@ export default function RecentActivityPage() {
         <div className="flex flex-wrap gap-2">
           {filterTypes.map((filterType) => {
             const FilterIcon = filterType.icon;
+            const count = filterType.id === 'all' 
+              ? activities.length 
+              : getActivitiesByType(filterType.id).length;
+            
             return (
               <button
                 key={filterType.id}
@@ -246,6 +208,15 @@ export default function RecentActivityPage() {
               >
                 <FilterIcon size={18} />
                 <span className="text-sm">{filterType.label}</span>
+                {count > 0 && (
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${
+                    filter === filterType.id
+                      ? "bg-white/20"
+                      : "bg-gray-200"
+                  }`}>
+                    {count}
+                  </span>
+                )}
               </button>
             );
           })}
@@ -325,14 +296,22 @@ export default function RecentActivityPage() {
               <Activity size={32} className="text-purple-600" />
             </div>
             <h3 className="text-xl font-bold text-gray-900 mb-2">
-              No activity yet
+              {filter === 'all' ? 'No activity yet' : 'No activity of this type'}
             </h3>
             <p className="text-gray-600 mb-6">
-              Start using GiftGenius to see your activity here
+              {filter === 'all' 
+                ? 'Start using GiftGenius to see your activity here'
+                : 'Try selecting a different filter to see more activities'
+              }
             </p>
-            <button className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-xl shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200">
-              Find Your First Gift
-            </button>
+            {filter !== 'all' && (
+              <button
+                onClick={() => setFilter('all')}
+                className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-xl shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200"
+              >
+                View All Activity
+              </button>
+            )}
           </div>
         )}
       </div>

@@ -1,7 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Users, Calendar } from "lucide-react";
+import { useRecipients } from "../RecipientContext";
+import { useActivity } from "../ActivityContext";
 
-export default function HomePage({ onSearchGifts }) {
+export default function HomePage({ onSearchGifts, prefilledRecipient }) {
+  const { addRecipient } = useRecipients();
+  const { logActivity } = useActivity();
   const [selectedOccasion, setSelectedOccasion] = useState(null);
   const [selectedGender, setSelectedGender] = useState([]);
   const [firstName, setFirstName] = useState("");
@@ -11,6 +15,21 @@ export default function HomePage({ onSearchGifts }) {
   const [minBudget, setMinBudget] = useState("");
   const [maxBudget, setMaxBudget] = useState("");
   const [interests, setInterests] = useState("");
+
+  // Pre-fill form when prefilledRecipient is provided
+  useEffect(() => {
+    if (prefilledRecipient) {
+      setFirstName(prefilledRecipient.firstName || "");
+      setLastName(prefilledRecipient.lastName || "");
+      setAge(prefilledRecipient.age || "");
+      setRelationship(prefilledRecipient.relationship || "");
+      setSelectedGender(prefilledRecipient.gender || []);
+      setInterests(prefilledRecipient.interests || "");
+      
+      // Scroll to top of page
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [prefilledRecipient]);
 
   const occasions = [
     { id: "christmas", icon: "🎄", label: "Christmas" },
@@ -55,6 +74,13 @@ export default function HomePage({ onSearchGifts }) {
       interests: interests || "Various interests",
     };
 
+    // Log activity
+    logActivity({
+      type: 'gift_search',
+      title: 'Searched for gift ideas',
+      description: `Found gifts for ${firstName || 'Recipient'} ${lastName || ''} - ${searchData.occasion}`,
+    });
+
     try {
       // Call your backend API
       const response = await fetch(
@@ -90,21 +116,79 @@ export default function HomePage({ onSearchGifts }) {
   };
 
   const handleSaveRecipient = () => {
-    // TODO: Add save recipient logic here
-    const recipientData = {
-      firstName,
-      lastName,
-      age,
-      relationship,
-      gender: selectedGender,
-      interests,
-    };
-    console.log("Saving recipient:", recipientData);
-    alert("Recipient profile saved!");
+    // Validate required fields
+    if (!firstName) {
+      alert("Please enter a first name");
+      return;
+    }
+
+    try {
+      // Create recipient data object
+      const recipientData = {
+        firstName,
+        lastName,
+        age: age || null,
+        relationship: relationship || "Unknown",
+        gender: selectedGender.length > 0 ? selectedGender : ["Other"],
+        interests: interests || "No interests specified",
+      };
+
+      // Save using RecipientContext
+      addRecipient(recipientData);
+
+      // Log activity
+      logActivity({
+        type: 'recipient_added',
+        title: 'Added new recipient',
+        description: `${firstName} ${lastName || ''} - ${recipientData.relationship}`,
+      });
+
+      // Show success message
+      alert(`${firstName} ${lastName || ''} has been saved to your recipients!`);
+
+      // Optionally clear the form after saving
+      // Uncomment these lines if you want to clear the form:
+      // setFirstName("");
+      // setLastName("");
+      // setAge("");
+      // setRelationship("");
+      // setSelectedGender([]);
+      // setInterests("");
+    } catch (error) {
+      console.error("Error saving recipient:", error);
+      alert("Failed to save recipient. Please try again.");
+    }
   };
 
   return (
     <>
+      {/* Pre-filled indicator banner */}
+      {prefilledRecipient && (
+        <div className="bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl shadow-lg p-4 mb-6 text-white flex items-center gap-3">
+          <svg
+            className="w-6 h-6 flex-shrink-0"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+          <div className="flex-1">
+            <p className="font-semibold">
+              Form pre-filled with {prefilledRecipient.firstName}'s information
+            </p>
+            <p className="text-sm text-blue-100">
+              Adjust details and select an occasion, then click "Find Perfect Gifts"
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Who are you shopping for? Section */}
       <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
         <div className="flex items-center gap-3 mb-4">

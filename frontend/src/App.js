@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Home, Users, Calendar, Activity } from "lucide-react";
+import { useAuth } from "./AuthContext";
 import HomePage from "./pages/HomePage";
 import RecipientProfilesPage from "./pages/RecipientProfilesPage";
 import OccasionCalendarPage from "./pages/OccasionCalendarPage";
@@ -12,12 +13,13 @@ import SignupPage from "./pages/SignupPage";
 import GiftRecommendationsPage from "./pages/GiftRecommendationsPage";
 
 export default function GiftGeniusApp() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { user, isAuthenticated, logout, isLoading } = useAuth();
   const [showAuthPage, setShowAuthPage] = useState("login"); // 'login' or 'signup'
   const [selectedNav, setSelectedNav] = useState("home");
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showGiftRecommendations, setShowGiftRecommendations] = useState(false);
   const [recipientSearchData, setRecipientSearchData] = useState(null);
+  const [prefilledRecipient, setPrefilledRecipient] = useState(null);
 
   const navItems = [
     { id: "home", label: "Home", icon: Home },
@@ -28,22 +30,32 @@ export default function GiftGeniusApp() {
 
   // Handle login
   const handleLogin = () => {
-    setIsAuthenticated(true);
     setSelectedNav("home");
   };
 
   // Handle signup
   const handleSignup = () => {
-    setIsAuthenticated(true);
     setSelectedNav("home");
   };
 
   // Handle logout
   const handleLogout = () => {
-    setIsAuthenticated(false);
+    logout();
     setShowAuthPage("login");
     setSelectedNav("home");
     setShowUserMenu(false);
+  };
+
+  // Handle navigation to home from recipient profiles
+  const handleNavigateHome = () => {
+    setPrefilledRecipient(null); // Clear any pre-filled data
+    setSelectedNav("home");
+  };
+
+  // Handle "Find Gifts" from recipient profile
+  const handleFindGiftsForRecipient = (recipient) => {
+    setPrefilledRecipient(recipient);
+    setSelectedNav("home");
   };
 
   // Render the current page based on selectedNav
@@ -65,11 +77,18 @@ export default function GiftGeniusApp() {
             onSearchGifts={(data) => {
               setRecipientSearchData(data);
               setShowGiftRecommendations(true);
+              setPrefilledRecipient(null); // Clear pre-filled data after search
             }}
+            prefilledRecipient={prefilledRecipient}
           />
         );
       case "recipients":
-        return <RecipientProfilesPage />;
+        return (
+          <RecipientProfilesPage 
+            onNavigateHome={handleNavigateHome}
+            onFindGiftsForRecipient={handleFindGiftsForRecipient}
+          />
+        );
       case "calendar":
         return <OccasionCalendarPage />;
       case "activity":
@@ -86,11 +105,25 @@ export default function GiftGeniusApp() {
             onSearchGifts={(data) => {
               setRecipientSearchData(data);
               setShowGiftRecommendations(true);
+              setPrefilledRecipient(null);
             }}
+            prefilledRecipient={prefilledRecipient}
           />
         );
     }
   };
+
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   // If not authenticated, show login or signup page
   if (!isAuthenticated) {
@@ -111,6 +144,11 @@ export default function GiftGeniusApp() {
     }
   }
 
+  // Get user initials
+  const userInitials = user
+    ? `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase()
+    : 'U';
+
   // Main authenticated app
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50">
@@ -127,10 +165,12 @@ export default function GiftGeniusApp() {
             >
               <div className="text-right">
                 <p className="text-sm text-gray-500">Welcome,</p>
-                <p className="text-sm font-semibold text-gray-900">Jane Doe</p>
+                <p className="text-sm font-semibold text-gray-900">
+                  {user.firstName} {user.lastName}
+                </p>
               </div>
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white font-semibold">
-                JD
+                {userInitials}
               </div>
             </button>
 
@@ -139,9 +179,9 @@ export default function GiftGeniusApp() {
               <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-50">
                 <div className="px-4 py-3 border-b border-gray-100">
                   <p className="text-sm font-semibold text-gray-900">
-                    Jane Doe
+                    {user.firstName} {user.lastName}
                   </p>
-                  <p className="text-xs text-gray-500">jane.doe@example.com</p>
+                  <p className="text-xs text-gray-500">{user.email}</p>
                 </div>
                 <button
                   onClick={() => {
@@ -254,7 +294,10 @@ export default function GiftGeniusApp() {
               return (
                 <button
                   key={item.id}
-                  onClick={() => setSelectedNav(item.id)}
+                  onClick={() => {
+                    setSelectedNav(item.id);
+                    setPrefilledRecipient(null); // Clear pre-filled data when changing nav
+                  }}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
                     selectedNav === item.id
                       ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-200"
