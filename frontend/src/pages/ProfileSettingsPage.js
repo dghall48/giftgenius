@@ -1,14 +1,29 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { User, Mail, Save } from "lucide-react";
+import { useAuth } from "../AuthContext";
 
 export default function ProfileSettingsPage() {
+  const { user, updateProfile } = useAuth();
   const [formData, setFormData] = useState({
-    firstName: "Jane",
-    lastName: "Doe",
-    email: "jane.doe@example.com",
+    firstName: "",
+    lastName: "",
+    email: "",
     phone: "",
     bio: "",
   });
+
+  // Load user data when component mounts
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        firstName: user.firstName || "",
+        lastName: user.lastName || "",
+        email: user.email || "",
+        phone: user.phone || "",
+        bio: user.bio || "",
+      });
+    }
+  }, [user]);
 
   const handleChange = (e) => {
     setFormData({
@@ -19,10 +34,15 @@ export default function ProfileSettingsPage() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // TODO: Add save logic here
-    console.log("Profile updated:", formData);
+    // Update profile using AuthContext
+    updateProfile(formData);
     alert("Profile settings saved!");
   };
+
+  // Get user initials
+  const userInitials = user
+    ? `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase()
+    : 'U';
 
   return (
     <div>
@@ -43,7 +63,7 @@ export default function ProfileSettingsPage() {
             </h3>
             <div className="flex flex-col items-center">
               <div className="w-32 h-32 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white text-4xl font-bold mb-4">
-                JD
+                {userInitials}
               </div>
               <button className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-medium rounded-lg hover:shadow-md transition-all">
                 Change Photo

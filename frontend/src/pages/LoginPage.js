@@ -1,16 +1,31 @@
 import React, { useState } from "react";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { useAuth } from "../AuthContext";
 
 export default function LoginPage({ onLogin, onSwitchToSignup }) {
+  const { login } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // TODO: Add authentication logic here
-    console.log("Login attempt:", { email, password });
-    onLogin(); // This will be called when login is successful
+    setError("");
+
+    try {
+      // Attempt to log in
+      await login(email, password);
+      
+      // Clear form
+      setEmail("");
+      setPassword("");
+      
+      // Call parent callback
+      onLogin();
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
   return (
@@ -30,6 +45,13 @@ export default function LoginPage({ onLogin, onSwitchToSignup }) {
         <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">Log In</h2>
 
+          {/* Error Message */}
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Email Input */}
             <div>
@@ -44,7 +66,10 @@ export default function LoginPage({ onLogin, onSwitchToSignup }) {
                 <input
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (error) setError("");
+                  }}
                   placeholder="you@example.com"
                   required
                   className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none transition-all"
@@ -65,7 +90,10 @@ export default function LoginPage({ onLogin, onSwitchToSignup }) {
                 <input
                   type={showPassword ? "text" : "password"}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (error) setError("");
+                  }}
                   placeholder="Enter your password"
                   required
                   className="w-full pl-10 pr-12 py-3 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none transition-all"
