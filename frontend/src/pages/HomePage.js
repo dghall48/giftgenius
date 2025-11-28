@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Users, Calendar } from "lucide-react";
+import { Users, Calendar, Loader } from "lucide-react";
 import { useRecipients } from "../RecipientContext";
 import { useActivity } from "../ActivityContext";
 
@@ -15,6 +15,8 @@ export default function HomePage({ onSearchGifts, prefilledRecipient }) {
   const [minBudget, setMinBudget] = useState("");
   const [maxBudget, setMaxBudget] = useState("");
   const [interests, setInterests] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState("");
 
   // Pre-fill form when prefilledRecipient is provided
   useEffect(() => {
@@ -25,9 +27,9 @@ export default function HomePage({ onSearchGifts, prefilledRecipient }) {
       setRelationship(prefilledRecipient.relationship || "");
       setSelectedGender(prefilledRecipient.gender || []);
       setInterests(prefilledRecipient.interests || "");
-      
+
       // Scroll to top of page
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   }, [prefilledRecipient]);
 
@@ -56,8 +58,25 @@ export default function HomePage({ onSearchGifts, prefilledRecipient }) {
   };
 
   const handleFindGifts = async () => {
-    // Show loading state (you can add a loading spinner later)
-    console.log("Searching for gifts...");
+    setIsLoading(true);
+
+    // Animated loading messages
+    const messages = [
+      "Analyzing recipient preferences...",
+      "Searching for perfect gifts...",
+      "Comparing prices and reviews...",
+      "Personalizing recommendations...",
+      "Almost there...",
+    ];
+
+    let messageIndex = 0;
+    setLoadingMessage(messages[0]);
+
+    // Change message every 2 seconds
+    const messageInterval = setInterval(() => {
+      messageIndex = (messageIndex + 1) % messages.length;
+      setLoadingMessage(messages[messageIndex]);
+    }, 2000);
 
     // Collect all the form data
     const searchData = {
@@ -76,9 +95,11 @@ export default function HomePage({ onSearchGifts, prefilledRecipient }) {
 
     // Log activity
     logActivity({
-      type: 'gift_search',
-      title: 'Searched for gift ideas',
-      description: `Found gifts for ${firstName || 'Recipient'} ${lastName || ''} - ${searchData.occasion}`,
+      type: "gift_search",
+      title: "Searched for gift ideas",
+      description: `Found gifts for ${firstName || "Recipient"} ${
+        lastName || ""
+      } - ${searchData.occasion}`,
     });
 
     try {
@@ -101,6 +122,10 @@ export default function HomePage({ onSearchGifts, prefilledRecipient }) {
       const data = await response.json();
       console.log("Received recommendations:", data);
 
+      // Clear interval
+      clearInterval(messageInterval);
+      setIsLoading(false);
+
       // Pass the data to the recommendations page
       if (onSearchGifts) {
         onSearchGifts({
@@ -111,6 +136,8 @@ export default function HomePage({ onSearchGifts, prefilledRecipient }) {
       }
     } catch (error) {
       console.error("Error fetching recommendations:", error);
+      clearInterval(messageInterval);
+      setIsLoading(false);
       alert("Failed to get gift recommendations. Please try again.");
     }
   };
@@ -138,22 +165,17 @@ export default function HomePage({ onSearchGifts, prefilledRecipient }) {
 
       // Log activity
       logActivity({
-        type: 'recipient_added',
-        title: 'Added new recipient',
-        description: `${firstName} ${lastName || ''} - ${recipientData.relationship}`,
+        type: "recipient_added",
+        title: "Added new recipient",
+        description: `${firstName} ${lastName || ""} - ${
+          recipientData.relationship
+        }`,
       });
 
       // Show success message
-      alert(`${firstName} ${lastName || ''} has been saved to your recipients!`);
-
-      // Optionally clear the form after saving
-      // Uncomment these lines if you want to clear the form:
-      // setFirstName("");
-      // setLastName("");
-      // setAge("");
-      // setRelationship("");
-      // setSelectedGender([]);
-      // setInterests("");
+      alert(
+        `${firstName} ${lastName || ""} has been saved to your recipients!`
+      );
     } catch (error) {
       console.error("Error saving recipient:", error);
       alert("Failed to save recipient. Please try again.");
@@ -162,6 +184,51 @@ export default function HomePage({ onSearchGifts, prefilledRecipient }) {
 
   return (
     <>
+      {/* Loading Overlay */}
+      {isLoading && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
+            <div className="flex flex-col items-center">
+              {/* Animated loader */}
+              <div className="relative w-24 h-24 mb-6">
+                <div className="absolute inset-0 border-4 border-purple-200 rounded-full"></div>
+                <div className="absolute inset-0 border-4 border-transparent border-t-purple-600 rounded-full animate-spin"></div>
+                <div
+                  className="absolute inset-2 border-4 border-transparent border-t-pink-600 rounded-full animate-spin"
+                  style={{
+                    animationDirection: "reverse",
+                    animationDuration: "1s",
+                  }}
+                ></div>
+                <Loader
+                  className="absolute inset-0 m-auto text-purple-600 animate-pulse"
+                  size={32}
+                />
+              </div>
+
+              {/* Loading message */}
+              <h3 className="text-xl font-bold text-gray-900 mb-2">
+                Finding Perfect Gifts
+              </h3>
+              <p className="text-gray-600 text-center mb-4">{loadingMessage}</p>
+
+              {/* Progress dots */}
+              <div className="flex gap-2">
+                <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce"></div>
+                <div
+                  className="w-2 h-2 bg-purple-600 rounded-full animate-bounce"
+                  style={{ animationDelay: "0.1s" }}
+                ></div>
+                <div
+                  className="w-2 h-2 bg-purple-600 rounded-full animate-bounce"
+                  style={{ animationDelay: "0.2s" }}
+                ></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Pre-filled indicator banner */}
       {prefilledRecipient && (
         <div className="bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl shadow-lg p-4 mb-6 text-white flex items-center gap-3">
@@ -183,7 +250,8 @@ export default function HomePage({ onSearchGifts, prefilledRecipient }) {
               Form pre-filled with {prefilledRecipient.firstName}'s information
             </p>
             <p className="text-sm text-blue-100">
-              Adjust details and select an occasion, then click "Find Perfect Gifts"
+              Adjust details and select an occasion, then click "Find Perfect
+              Gifts"
             </p>
           </div>
         </div>
@@ -210,7 +278,8 @@ export default function HomePage({ onSearchGifts, prefilledRecipient }) {
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
               placeholder="Enter first name"
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none transition-all"
+              disabled={isLoading}
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none transition-all disabled:bg-gray-100 disabled:cursor-not-allowed"
             />
           </div>
           <div>
@@ -222,7 +291,8 @@ export default function HomePage({ onSearchGifts, prefilledRecipient }) {
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
               placeholder="Enter last name"
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none transition-all"
+              disabled={isLoading}
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none transition-all disabled:bg-gray-100 disabled:cursor-not-allowed"
             />
           </div>
         </div>
@@ -239,7 +309,8 @@ export default function HomePage({ onSearchGifts, prefilledRecipient }) {
               placeholder="Age"
               min="0"
               max="120"
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none transition-all"
+              disabled={isLoading}
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none transition-all disabled:bg-gray-100 disabled:cursor-not-allowed"
             />
           </div>
           <div className="md:col-span-2">
@@ -251,7 +322,8 @@ export default function HomePage({ onSearchGifts, prefilledRecipient }) {
               value={relationship}
               onChange={(e) => setRelationship(e.target.value)}
               placeholder="e.g., Friend, Family, Colleague"
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none transition-all"
+              disabled={isLoading}
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none transition-all disabled:bg-gray-100 disabled:cursor-not-allowed"
             />
           </div>
           <div className="md:col-span-3">
@@ -264,11 +336,12 @@ export default function HomePage({ onSearchGifts, prefilledRecipient }) {
                   key={gender}
                   type="button"
                   onClick={() => toggleGender(gender)}
+                  disabled={isLoading}
                   className={`flex-1 px-4 py-3 rounded-xl font-medium transition-all ${
                     selectedGender.includes(gender)
                       ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-md"
                       : "bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200"
-                  }`}
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
                   {gender}
                 </button>
@@ -282,7 +355,8 @@ export default function HomePage({ onSearchGifts, prefilledRecipient }) {
           <button
             type="button"
             onClick={handleSaveRecipient}
-            className="group px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-xl shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center gap-2"
+            disabled={isLoading}
+            className="group px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-xl shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
           >
             <svg
               className="w-5 h-5"
@@ -319,11 +393,12 @@ export default function HomePage({ onSearchGifts, prefilledRecipient }) {
               key={occasion.id}
               type="button"
               onClick={() => setSelectedOccasion(occasion.id)}
+              disabled={isLoading}
               className={`group relative p-4 rounded-xl border-2 transition-all duration-300 ${
                 selectedOccasion === occasion.id
                   ? "border-purple-500 bg-gradient-to-br from-purple-50 to-pink-50 shadow-lg shadow-purple-100"
                   : "border-gray-200 hover:border-purple-300 hover:shadow-md bg-white"
-              }`}
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
             >
               <div className="text-3xl mb-2 transform group-hover:scale-110 transition-transform">
                 {occasion.icon}
@@ -384,7 +459,8 @@ export default function HomePage({ onSearchGifts, prefilledRecipient }) {
               value={minBudget}
               onChange={(e) => setMinBudget(e.target.value)}
               placeholder="0"
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none transition-all"
+              disabled={isLoading}
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none transition-all disabled:bg-gray-100 disabled:cursor-not-allowed"
             />
           </div>
           <div>
@@ -396,7 +472,8 @@ export default function HomePage({ onSearchGifts, prefilledRecipient }) {
               value={maxBudget}
               onChange={(e) => setMaxBudget(e.target.value)}
               placeholder="100"
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none transition-all"
+              disabled={isLoading}
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none transition-all disabled:bg-gray-100 disabled:cursor-not-allowed"
             />
           </div>
         </div>
@@ -434,7 +511,8 @@ export default function HomePage({ onSearchGifts, prefilledRecipient }) {
             onChange={(e) => setInterests(e.target.value)}
             placeholder="e.g., Reading, Gaming, Cooking, Fitness, Travel, Photography..."
             rows={4}
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none transition-all resize-none"
+            disabled={isLoading}
+            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none transition-all resize-none disabled:bg-gray-100 disabled:cursor-not-allowed"
           />
           <p className="text-xs text-gray-500 mt-2">
             Tell us about their hobbies, interests, or things they love to help
@@ -448,35 +526,45 @@ export default function HomePage({ onSearchGifts, prefilledRecipient }) {
         <button
           type="button"
           onClick={handleFindGifts}
-          className="group px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center gap-3"
+          disabled={isLoading}
+          className="group px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
         >
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            />
-          </svg>
-          <span>Find Perfect Gifts</span>
-          <svg
-            className="w-5 h-5 transform group-hover:translate-x-1 transition-transform"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M13 7l5 5m0 0l-5 5m5-5H6"
-            />
-          </svg>
+          {isLoading ? (
+            <>
+              <Loader className="w-5 h-5 animate-spin" />
+              <span>Searching...</span>
+            </>
+          ) : (
+            <>
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+              <span>Find Perfect Gifts</span>
+              <svg
+                className="w-5 h-5 transform group-hover:translate-x-1 transition-transform"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 7l5 5m0 0l-5 5m5-5H6"
+                />
+              </svg>
+            </>
+          )}
         </button>
       </div>
     </>
