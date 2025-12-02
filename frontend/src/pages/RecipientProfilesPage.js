@@ -1,21 +1,30 @@
 import React, { useState } from "react";
-import { Users } from "lucide-react";
+import { Users, Mail } from "lucide-react";
 import { useRecipients } from "../RecipientContext";
 import { useActivity } from "../ActivityContext";
+import { useAuth } from "../AuthContext";
+import EmailFormModal from "../components/EmailFormModal";
+import ViewSubmissionsModal from "../components/ViewSubmissionsModal";
 
-export default function RecipientProfilesPage({ onNavigateHome, onFindGiftsForRecipient }) {
+export default function RecipientProfilesPage({
+  onNavigateHome,
+  onFindGiftsForRecipient,
+}) {
   const { recipients, deleteRecipient } = useRecipients();
   const { logActivity } = useActivity();
+  const { user } = useAuth();
   const [expandedRecipient, setExpandedRecipient] = useState(null);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [showSubmissionsModal, setShowSubmissionsModal] = useState(false);
 
   const handleDelete = (recipientId, recipientName) => {
     if (window.confirm(`Are you sure you want to delete ${recipientName}?`)) {
       deleteRecipient(recipientId);
-      
+
       // Log activity
       logActivity({
-        type: 'recipient_deleted',
-        title: 'Deleted recipient',
+        type: "recipient_deleted",
+        title: "Deleted recipient",
         description: recipientName,
       });
     }
@@ -36,9 +45,9 @@ export default function RecipientProfilesPage({ onNavigateHome, onFindGiftsForRe
   };
 
   const getInitials = (firstName, lastName) => {
-    const firstInitial = firstName ? firstName[0].toUpperCase() : '';
-    const lastInitial = lastName ? lastName[0].toUpperCase() : '';
-    return firstInitial + lastInitial || '?';
+    const firstInitial = firstName ? firstName[0].toUpperCase() : "";
+    const lastInitial = lastName ? lastName[0].toUpperCase() : "";
+    return firstInitial + lastInitial || "?";
   };
 
   return (
@@ -63,33 +72,65 @@ export default function RecipientProfilesPage({ onNavigateHome, onFindGiftsForRe
             <div>
               <h2 className="text-3xl font-bold">{recipients.length}</h2>
               <p className="text-purple-100">
-                {recipients.length === 1 ? 'Recipient Saved' : 'Recipients Saved'}
+                {recipients.length === 1
+                  ? "Recipient Saved"
+                  : "Recipients Saved"}
               </p>
             </div>
           </div>
         </div>
       )}
 
-      {/* Add New Recipient Button */}
-      <button 
-        onClick={handleAddNewRecipient}
-        className="mb-6 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-xl shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center gap-2"
-      >
-        <svg
-          className="w-5 h-5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
+      {/* Action Buttons */}
+      <div className="mb-6 flex flex-wrap gap-3">
+        <button
+          onClick={handleAddNewRecipient}
+          className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-xl shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center gap-2"
         >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-          />
-        </svg>
-        <span>Add New Recipient</span>
-      </button>
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+            />
+          </svg>
+          <span>Add New Recipient</span>
+        </button>
+
+        <button
+          onClick={() => setShowEmailModal(true)}
+          className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center gap-2"
+        >
+          <Mail size={20} />
+          <span>Send Recipient Form</span>
+        </button>
+
+        <button
+          onClick={() => setShowSubmissionsModal(true)}
+          className="px-6 py-3 bg-gradient-to-r from-green-600 to-teal-600 text-white font-semibold rounded-xl shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center gap-2"
+        >
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            />
+          </svg>
+          <span>View Submissions</span>
+        </button>
+      </div>
 
       {/* Recipients Grid */}
       {recipients.length > 0 ? (
@@ -150,7 +191,9 @@ export default function RecipientProfilesPage({ onNavigateHome, onFindGiftsForRe
                       <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
                         Age
                       </label>
-                      <p className="text-sm text-gray-700">{recipient.age} years old</p>
+                      <p className="text-sm text-gray-700">
+                        {recipient.age} years old
+                      </p>
                     </div>
                   )}
 
@@ -176,7 +219,9 @@ export default function RecipientProfilesPage({ onNavigateHome, onFindGiftsForRe
                     <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
                       Interests & Hobbies
                     </label>
-                    <p className="text-sm text-gray-700">{recipient.interests}</p>
+                    <p className="text-sm text-gray-700">
+                      {recipient.interests}
+                    </p>
                   </div>
 
                   {/* Last Gift */}
@@ -207,17 +252,20 @@ export default function RecipientProfilesPage({ onNavigateHome, onFindGiftsForRe
                       Added On
                     </label>
                     <p className="text-sm text-gray-700">
-                      {new Date(recipient.createdAt).toLocaleDateString('en-US', {
-                        month: 'long',
-                        day: 'numeric',
-                        year: 'numeric'
-                      })}
+                      {new Date(recipient.createdAt).toLocaleDateString(
+                        "en-US",
+                        {
+                          month: "long",
+                          day: "numeric",
+                          year: "numeric",
+                        }
+                      )}
                     </p>
                   </div>
 
                   {/* Action Buttons */}
                   <div className="flex gap-2 pt-2">
-                    <button 
+                    <button
                       onClick={() => handleFindGifts(recipient)}
                       className="flex-1 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-medium rounded-lg hover:shadow-md transition-all"
                     >
@@ -238,8 +286,13 @@ export default function RecipientProfilesPage({ onNavigateHome, onFindGiftsForRe
                         />
                       </svg>
                     </button>
-                    <button 
-                      onClick={() => handleDelete(recipient.id, `${recipient.firstName} ${recipient.lastName}`)}
+                    <button
+                      onClick={() =>
+                        handleDelete(
+                          recipient.id,
+                          `${recipient.firstName} ${recipient.lastName}`
+                        )
+                      }
                       className="px-4 py-2 border border-red-200 text-red-600 font-medium rounded-lg hover:bg-red-50 transition-all"
                     >
                       <svg
@@ -274,7 +327,7 @@ export default function RecipientProfilesPage({ onNavigateHome, onFindGiftsForRe
           <p className="text-gray-600 mb-6">
             Start by adding your first recipient profile on the Home page
           </p>
-          <button 
+          <button
             onClick={handleAddNewRecipient}
             className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-xl shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200"
           >
@@ -282,6 +335,19 @@ export default function RecipientProfilesPage({ onNavigateHome, onFindGiftsForRe
           </button>
         </div>
       )}
+
+      {/* Email Form Modal */}
+      <EmailFormModal
+        isOpen={showEmailModal}
+        onClose={() => setShowEmailModal(false)}
+        user={user}
+      />
+
+      {/* View Submissions Modal */}
+      <ViewSubmissionsModal
+        isOpen={showSubmissionsModal}
+        onClose={() => setShowSubmissionsModal(false)}
+      />
     </div>
   );
 }

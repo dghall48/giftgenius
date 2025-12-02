@@ -11,15 +11,24 @@ import HelpSupportPage from "./pages/HelpSupportPage";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import GiftRecommendationsPage from "./pages/GiftRecommendationsPage";
+import RecipientFormPage from "./pages/RecipientFormPage";
 
 export default function GiftGeniusApp() {
   const { user, isAuthenticated, logout, isLoading } = useAuth();
-  const [showAuthPage, setShowAuthPage] = useState("login"); // 'login' or 'signup'
+  const [showAuthPage, setShowAuthPage] = useState("login");
   const [selectedNav, setSelectedNav] = useState("home");
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showGiftRecommendations, setShowGiftRecommendations] = useState(false);
   const [recipientSearchData, setRecipientSearchData] = useState(null);
   const [prefilledRecipient, setPrefilledRecipient] = useState(null);
+
+  // Check if we're on the recipient form page (AFTER all hooks)
+  const isRecipientFormPage = window.location.pathname === "/recipient-form";
+
+  // If it's the recipient form page, render it directly (no auth needed)
+  if (isRecipientFormPage) {
+    return <RecipientFormPage />;
+  }
 
   const navItems = [
     { id: "home", label: "Home", icon: Home },
@@ -84,7 +93,7 @@ export default function GiftGeniusApp() {
         );
       case "recipients":
         return (
-          <RecipientProfilesPage 
+          <RecipientProfilesPage
             onNavigateHome={handleNavigateHome}
             onFindGiftsForRecipient={handleFindGiftsForRecipient}
           />
@@ -146,8 +155,8 @@ export default function GiftGeniusApp() {
 
   // Get user initials
   const userInitials = user
-    ? `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase()
-    : 'U';
+    ? `${user.firstName?.[0] || ""}${user.lastName?.[0] || ""}`.toUpperCase()
+    : "U";
 
   // Main authenticated app
   return (

@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const OpenAI = require("openai");
+const recipientFormRoutes = require("../routes/recipientForm");
 require("dotenv").config();
 
 const app = express();
@@ -14,6 +15,9 @@ const openai = new OpenAI({
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Email form routes
+app.use(recipientFormRoutes);
 
 // Basic health check
 app.get("/api/health", (req, res) => {
