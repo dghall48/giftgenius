@@ -8,10 +8,12 @@ import {
   Star,
   ArrowLeft,
 } from "lucide-react";
+import { useSavedGifts } from "../SavedGiftsContext";
 
 export default function GiftRecommendationsPage({ recipientData, onBack }) {
   const [savedGifts, setSavedGifts] = useState([]);
   const [imageErrors, setImageErrors] = useState({});
+  const { saveGift, unsaveGift, isGiftSaved } = useSavedGifts();
 
   // Use real recommendations from API or fallback to mock data
   const recommendations = recipientData?.recommendations || [
@@ -89,11 +91,16 @@ export default function GiftRecommendationsPage({ recipientData, onBack }) {
     },
   ];
 
-  const toggleSave = (giftId) => {
-    if (savedGifts.includes(giftId)) {
-      setSavedGifts(savedGifts.filter((id) => id !== giftId));
+  const toggleSave = (gift) => {
+    if (isGiftSaved(gift.id)) {
+      unsaveGift(gift.id);
+      setSavedGifts(savedGifts.filter((id) => id !== gift.id));
     } else {
-      setSavedGifts([...savedGifts, giftId]);
+      saveGift(gift, {
+        name: recipientData?.name || "Unknown",
+        occasion: recipientData?.occasion || "Special Occasion",
+      });
+      setSavedGifts([...savedGifts, gift.id]);
     }
   };
 
@@ -206,16 +213,16 @@ export default function GiftRecommendationsPage({ recipientData, onBack }) {
                 </div>
               )}
               <button
-                onClick={() => toggleSave(gift.id)}
+                onClick={() => toggleSave(gift)}
                 className={`absolute top-3 right-3 p-2 rounded-full transition-all ${
-                  savedGifts.includes(gift.id)
+                  isGiftSaved(gift.id)
                     ? "bg-red-500 text-white"
                     : "bg-white/80 text-gray-600 hover:bg-white"
                 }`}
               >
                 <Heart
                   size={20}
-                  fill={savedGifts.includes(gift.id) ? "currentColor" : "none"}
+                  fill={isGiftSaved(gift.id) ? "currentColor" : "none"}
                 />
               </button>
             </div>

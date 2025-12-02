@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Home, Users, Calendar, Activity } from "lucide-react";
+import { Home, Users, Calendar, Activity, Heart } from "lucide-react";
 import { useAuth } from "./AuthContext";
 import HomePage from "./pages/HomePage";
 import RecipientProfilesPage from "./pages/RecipientProfilesPage";
@@ -12,6 +12,7 @@ import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import GiftRecommendationsPage from "./pages/GiftRecommendationsPage";
 import RecipientFormPage from "./pages/RecipientFormPage";
+import SavedGiftsPage from "./pages/SavedGiftsPage";
 
 export default function GiftGeniusApp() {
   const { user, isAuthenticated, logout, isLoading } = useAuth();
@@ -35,6 +36,7 @@ export default function GiftGeniusApp() {
     { id: "recipients", label: "Recipient Profiles", icon: Users },
     { id: "calendar", label: "Occasion Calendar", icon: Calendar },
     { id: "activity", label: "Recent Activity", icon: Activity },
+    { id: "saved", label: "Saved Gifts", icon: Heart },
   ];
 
   // Handle login
@@ -108,6 +110,8 @@ export default function GiftGeniusApp() {
         return <AccountSettingsPage />;
       case "help-support":
         return <HelpSupportPage />;
+      case "saved":
+        return <SavedGiftsPage />;
       default:
         return (
           <HomePage
@@ -293,7 +297,7 @@ export default function GiftGeniusApp() {
 
       <div className="flex min-h-screen">
         {/* Sidebar */}
-        <aside className="w-64 bg-white border-r border-gray-200 p-6">
+        <aside className="w-64 bg-white border-r border-gray-200 p-6 sticky top-0 h-screen overflow-y-auto">
           <nav className="space-y-2">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
               Discover

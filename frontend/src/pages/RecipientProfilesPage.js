@@ -5,17 +5,20 @@ import { useActivity } from "../ActivityContext";
 import { useAuth } from "../AuthContext";
 import EmailFormModal from "../components/EmailFormModal";
 import ViewSubmissionsModal from "../components/ViewSubmissionsModal";
+import EditRecipientModal from "../components/EditRecipientModal";
 
 export default function RecipientProfilesPage({
   onNavigateHome,
   onFindGiftsForRecipient,
 }) {
-  const { recipients, deleteRecipient } = useRecipients();
+  const { recipients, deleteRecipient, updateRecipient } = useRecipients();
   const { logActivity } = useActivity();
   const { user } = useAuth();
   const [expandedRecipient, setExpandedRecipient] = useState(null);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [showSubmissionsModal, setShowSubmissionsModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingRecipient, setEditingRecipient] = useState(null);
 
   const handleDelete = (recipientId, recipientName) => {
     if (window.confirm(`Are you sure you want to delete ${recipientName}?`)) {
@@ -28,6 +31,22 @@ export default function RecipientProfilesPage({
         description: recipientName,
       });
     }
+  };
+
+  const handleEdit = (recipient) => {
+    setEditingRecipient(recipient);
+    setShowEditModal(true);
+  };
+
+  const handleSaveEdit = (updatedRecipient) => {
+    updateRecipient(updatedRecipient.id, updatedRecipient);
+
+    // Log activity
+    logActivity({
+      type: "recipient_updated",
+      title: "Updated recipient",
+      description: `${updatedRecipient.firstName} ${updatedRecipient.lastName}`,
+    });
   };
 
   const handleAddNewRecipient = () => {
@@ -271,7 +290,10 @@ export default function RecipientProfilesPage({
                     >
                       Find Gifts
                     </button>
-                    <button className="px-4 py-2 border border-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-all">
+                    <button
+                      onClick={() => handleEdit(recipient)}
+                      className="px-4 py-2 border border-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-all"
+                    >
                       <svg
                         className="w-5 h-5"
                         fill="none"
@@ -347,6 +369,16 @@ export default function RecipientProfilesPage({
       <ViewSubmissionsModal
         isOpen={showSubmissionsModal}
         onClose={() => setShowSubmissionsModal(false)}
+      />
+
+      <EditRecipientModal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setEditingRecipient(null);
+        }}
+        recipient={editingRecipient}
+        onSave={handleSaveEdit}
       />
     </div>
   );

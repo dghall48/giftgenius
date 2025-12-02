@@ -1,21 +1,24 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import './index.css';
-import App from './App';
-import reportWebVitals from './reportWebVitals';
-import { AuthProvider } from './AuthContext';
-import { RecipientProvider } from './RecipientContext';
-import { OccasionProvider } from './OccasionContext';
-import { ActivityProvider } from './ActivityContext';
+import React from "react";
+import ReactDOM from "react-dom/client";
+import "./index.css";
+import App from "./App";
+import reportWebVitals from "./reportWebVitals";
+import { AuthProvider } from "./AuthContext";
+import { RecipientProvider } from "./RecipientContext";
+import { OccasionProvider } from "./OccasionContext";
+import { ActivityProvider } from "./ActivityContext";
+import { SavedGiftsProvider } from "./SavedGiftsContext";
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
+const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
   <React.StrictMode>
     <AuthProvider>
       <ActivityProvider>
         <RecipientProvider>
           <OccasionProvider>
-            <App />
+            <SavedGiftsProvider>
+              <App />
+            </SavedGiftsProvider>
           </OccasionProvider>
         </RecipientProvider>
       </ActivityProvider>
