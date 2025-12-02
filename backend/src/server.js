@@ -1,3 +1,4 @@
+const { generateGiftRecommendationsWithGemini, getFallbackRecommendations } = require('../services/geminiServiceAlt');
 const express = require("express");
 const cors = require("cors");
 const OpenAI = require("openai");
@@ -49,8 +50,40 @@ app.post("/api/recommendations", async (req, res) => {
       });
     }
 
-    // Create the prompt for OpenAI
-    const prompt = `You are a gift recommendation expert. Based on the following information about a gift recipient, suggest 6 specific, real, purchasable products from Amazon.
+   let recommendations;
+let modelUsed = 'openai-gpt-4o';
+
+// Try Gemini first if API key is configured
+if (process.env.GEMINI_API_KEY) {
+  try {
+    console.log('🤖 Trying Gemini AI...');
+    const geminiRecs = await generateGiftRecommendationsWithGemini({
+      firstName,
+      lastName,
+      age,
+      gender,
+      relationship,
+      occasion,
+      minBudget,
+      maxBudget,
+      interests,
+    });
+    
+    recommendations = geminiRecs;
+    modelUsed = 'google-gemini-pro';
+    console.log('✅ Gemini generated', geminiRecs.length, 'recommendations');
+  } catch (geminiError) {
+    console.log('⚠️ Gemini failed:', geminiError.message);
+    console.log('↪️ Falling back to OpenAI...');
+  }
+}
+
+// Fallback to OpenAI if Gemini failed or not configured
+if (!recommendations) {
+  console.log('🤖 Using OpenAI GPT-4...');
+  
+  // Create the prompt for OpenAI
+  const prompt = `You are a gift recommendation expert. Based on the following information about a gift recipient, suggest 6 specific, real, purchasable products from Amazon.
 
 Recipient Information:
 - Name: ${firstName} ${lastName}
@@ -85,53 +118,51 @@ Return your response as a JSON array of 6 gift objects with this exact structure
 
 Important: 
 - Only suggest real products with valid ASINs
-- Make sure all prices are within the specified budget range ($${
-      minBudget || "0"
-    } - $${maxBudget || "100"})
+- Make sure all prices are within the specified budget range ($${minBudget || "0"} - $${maxBudget || "100"})
 - Verify the ASINs are correct (10 characters, letters and numbers)
 - Vary the price points across the 6 suggestions
 - Consider the occasion when suggesting gifts
 - Return ONLY the JSON array, no additional text`;
 
-    // Call OpenAI API
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are a helpful gift recommendation assistant. Always respond with valid JSON arrays only.",
-        },
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-      temperature: 0.8, // Higher temperature for more creative suggestions
-      max_tokens: 2000,
+  // Call OpenAI API
+  const completion = await openai.chat.completions.create({
+    model: "gpt-4o",
+    messages: [
+      {
+        role: "system",
+        content:
+          "You are a helpful gift recommendation assistant. Always respond with valid JSON arrays only.",
+      },
+      {
+        role: "user",
+        content: prompt,
+      },
+    ],
+    temperature: 0.8,
+    max_tokens: 2000,
+  });
+
+  // Extract the response
+  const aiResponse = completion.choices[0].message.content;
+  console.log("Raw AI Response:", aiResponse);
+
+  // Parse the JSON response
+  try {
+    // Remove markdown code blocks if present
+    const cleanedResponse = aiResponse
+      .replace(/```json\n?/g, "")
+      .replace(/```\n?/g, "")
+      .trim();
+    recommendations = JSON.parse(cleanedResponse);
+  } catch (parseError) {
+    console.error("Error parsing AI response:", parseError);
+    console.error("AI Response was:", aiResponse);
+    return res.status(500).json({
+      error: "Failed to parse AI recommendations",
+      details: "The AI returned an invalid format",
     });
-
-    // Extract the response
-    const aiResponse = completion.choices[0].message.content;
-    console.log("Raw AI Response:", aiResponse);
-
-    // Parse the JSON response
-    let recommendations;
-    try {
-      // Remove markdown code blocks if present
-      const cleanedResponse = aiResponse
-        .replace(/```json\n?/g, "")
-        .replace(/```\n?/g, "")
-        .trim();
-      recommendations = JSON.parse(cleanedResponse);
-    } catch (parseError) {
-      console.error("Error parsing AI response:", parseError);
-      console.error("AI Response was:", aiResponse);
-      return res.status(500).json({
-        error: "Failed to parse AI recommendations",
-        details: "The AI returned an invalid format",
-      });
-    }
+  }
+}
 
     // Add unique IDs, ratings, and construct image/link URLs to each recommendation
     const enrichedRecommendations = recommendations.map((gift, index) => {
@@ -156,11 +187,12 @@ Important:
     });
 
     // Return the recommendations
-    res.json({
-      success: true,
-      count: enrichedRecommendations.length,
-      recommendations: enrichedRecommendations,
-    });
+res.json({
+  success: true,
+  count: enrichedRecommendations.length,
+  recommendations: enrichedRecommendations,
+  model: modelUsed,
+});
   } catch (error) {
     console.error("Error generating recommendations:", error);
 
@@ -237,9 +269,6 @@ app.get("/api/recipients", (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
-  console.log(
-    `🤖 OpenAI integration: ${
-      process.env.OPENAI_API_KEY ? "Configured ✅" : "NOT configured ❌"
-    }`
-  );
+  console.log(`🤖 OpenAI: ${process.env.OPENAI_API_KEY ? "Configured ✅" : "NOT configured ❌"}`);
+  console.log(`🤖 Gemini: ${process.env.GEMINI_API_KEY ? "Configured ✅" : "NOT configured ❌"}`);
 });
